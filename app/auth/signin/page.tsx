@@ -20,7 +20,7 @@ const AlreadyHaveAnAccount = () => {
   return (
     <main>
       <p className="text-center text-gray-700 dark:text-gray-300">
-        Don't have an account?{" "}
+        {"Don't have an account? "}
         <Link
           prefetch
           href={"/auth/signup"}

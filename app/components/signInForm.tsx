@@ -64,8 +64,8 @@ export const SignInForm = () => {
       // Update authentication context
       setUser({
         uid: user.uid,
-        displayName: user.displayName,
-        email: user.email,
+        displayName: user.displayName ?? "", 
+        email: user.email ?? "",
         // emailVerified: user.emailVerified,
         emailVerified: true,
       });

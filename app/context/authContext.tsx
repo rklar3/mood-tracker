@@ -1,13 +1,19 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useState, useEffect } from "react";
-import { onAuthStateChanged, signOut, User as FirebaseUser } from "firebase/auth";
+import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "../lib/firebase";
 
+interface User {
+  uid: string;
+  displayName?: string | null;
+  email?: string | null;
+  emailVerified: boolean;
+}
 interface AuthContextProps {
   isAuthenticated: boolean;
-  user: FirebaseUser | null;
-  setUser: (user: FirebaseUser | null) => void;
+  user: User | null;
+  setUser: (user: User | null) => void;
   setIsAuthenticated: (isAuthenticated: boolean) => void;
   logout: () => Promise<void>;
 }
@@ -16,7 +22,7 @@ const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
