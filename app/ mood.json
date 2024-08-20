@@ -1,0 +1,119 @@
+{
+    "Positive": {
+      "Happy": [
+        "Joyful",
+        "Ecstatic",
+        "Cheerful",
+        "Content",
+        "Elated",
+        "Euphoric",
+        "Excited",
+        "Thrilled",
+        "Radiant",
+        "Playful",
+        "Optimistic",
+        "Enthusiastic",
+        "Lighthearted"
+      ],
+      "Inspired": [
+        "Motivated",
+        "Imaginative",
+        "Creative",
+        "Inspired",
+        "Uplifted",
+        "Invigorated"
+      ],
+      "Grateful": [
+        "Thankful",
+        "Gracious",
+        "Fulfilled",
+        "Appreciative"
+      ],
+      "Confident": [
+        "Proud",
+        "Confident",
+        "Self-assured",
+        "Valiant",
+        "Empowered",
+        "Fearless"
+      ],
+      "Friendly": [
+        "Welcoming",
+        "Sociable",
+        "Helpful",
+        "Kind",
+        "Friendly",
+        "Supportive"
+      ],
+      "Excited": [
+        "Enthralled",
+        "Exhilarated",
+        "Exuberant",
+        "Fascinated",
+        "Festive",
+        "Flamboyant",
+        "Flirty",
+        "Giggly",
+        "Happy"
+      ]
+    },
+    "Neutral": {
+      "Calm": [
+        "Serene",
+        "Relaxed",
+        "Tranquil",
+        "Meditative"
+      ],
+      "Focused": [
+        "Concentrated",
+        "Attentive",
+        "Determined",
+        "Focused"
+      ],
+      "Neutral": [
+        "Indifferent",
+        "Mellow",
+        "Light",
+        "Receptive",
+        "Introspective",
+        "Interested"
+      ]
+    },
+    "Negative": {
+      "Sad": [
+        "Sad",
+        "Gloomy",
+        "Miserable",
+        "Down",
+        "Regretful",
+        "Disappointed",
+        "Hopeless",
+        "Lonely"
+      ],
+      "Angry": [
+        "Mad",
+        "Irritated",
+        "Frustrated",
+        "Annoyed"
+      ],
+      "Anxious": [
+        "Anxious",
+        "Stressed",
+        "Overwhelmed",
+        "Uneasy",
+        "Helpless"
+      ],
+      "Guilty": [
+        "Guilty",
+        "Embarrassed",
+        "Distressed"
+      ],
+      "Bored": [
+        "Bored",
+        "Displeased",
+        "Disinterested",
+        "Unmotivated"
+      ]
+    }
+  }
+  
