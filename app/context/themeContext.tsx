@@ -20,18 +20,17 @@ const ThemeContext = createContext<ThemeContextType>({
 
 // Create a provider component
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const getInitialDarkMode = () => {
+    // const savedTheme = localStorage.getItem("darkMode");
+    const savedTheme = false;
+
+    return savedTheme ? JSON.parse(savedTheme) : false;
+  };
+
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(getInitialDarkMode);
   const [background, setBackground] = useState<string>(
     'linear-gradient(270deg, #3498db, #e91e63, #9b59b6, #3498db)'
   );
-
-  // Load theme from local storage on initial load
-  useEffect(() => {
-    const savedTheme = localStorage.getItem("darkMode");
-    if (savedTheme !== null) {
-      setIsDarkMode(JSON.parse(savedTheme));
-    }
-  }, []);
 
   // Save theme to local storage whenever it changes
   useEffect(() => {
@@ -40,17 +39,16 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
 
   // Save background to local storage whenever it changes
   useEffect(() => {
-    localStorage.setItem("background", background);
+    // localStorage.setItem("background", background);
   }, [background]);
 
   const toggleDarkMode = () => {
-    console.log('Dark mode toggled');
-    setIsDarkMode((prevMode) => !prevMode);
+    setIsDarkMode(prevMode => !prevMode);
   };
 
   return (
     <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode, background, setBackground }}>
-      <div className={isDarkMode ? "dark" : ""} style={{ background }}>
+      <div className={isDarkMode ? "" : "dark"} style={{ background }}>
         {children}
       </div>
     </ThemeContext.Provider>

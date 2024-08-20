@@ -29,10 +29,10 @@ export default function Navbar() {
         <Toggle
           onClick={() => toggleDarkMode()}
           aria-label="Toggle dark mode"
-          className={`rounded-full p-2 transition-colors hover:bg-muted-foreground ${isDarkMode ? 'bg-primary': 'bg-muted'}`}
+          className={`rounded-full p-2 transition-colors bg-primary  bg-secondary`}
         >
           {isDarkMode ? (
-            <SunIcon className="h-5 w-5 text-primary-foreground" />
+            <SunIcon className="h-5 w-5 text-muted-foreground" />
           ) : (
             <MoonIcon className="h-5 w-5 text-muted-foreground" />
           )}
