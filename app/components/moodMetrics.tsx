@@ -1,9 +1,15 @@
 'use client'
 
+import React, {
+  Dispatch,
+  SetStateAction,
+  useEffect,
+  useState,
+  useCallback,
+} from 'react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { startOfMonth, endOfMonth } from 'date-fns'
 import { collection, query, where, getDocs } from 'firebase/firestore'
-import { Dispatch, SetStateAction, useEffect, useState } from 'react'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/authContext'
 import { analyzeMoodData } from '../functions/analyzeMoodData'
@@ -34,46 +40,52 @@ export function MoodMetrics() {
   const [loading, setLoading] = useState(false)
   const [analysis, setAnalysis] = useState<MoodAnalysis | null>(null)
 
-  const fetchMonthlyMoods = async (
-    userId: string,
-    setMonthlyData: Dispatch<SetStateAction<MoodData[]>>,
-    setLoading: Dispatch<SetStateAction<boolean>>
-  ) => {
-    setLoading(true)
-    try {
-      const moodsRef = collection(db, 'moods')
-      const start = startOfMonth(new Date())
-      const end = endOfMonth(new Date())
-      const fbQuery = query(
-        moodsRef,
-        where('userId', '==', user?.uid),
-        where('timestamp', '>=', start),
-        where('timestamp', '<=', end)
-      )
-      const querySnapshot = await getDocs(fbQuery)
+  console.log(monthlyData)
+  console.log(loading)
 
-      const moodData = querySnapshot.docs.map(
-        (doc) =>
-          ({
-            ...doc.data(),
-            timestamp: (doc.data().timestamp as any).toDate(),
-          }) as MoodData
-      )
+  const fetchMonthlyMoods = useCallback(
+    async (
+      userId: string,
+      setMonthlyData: Dispatch<SetStateAction<MoodData[]>>,
+      setLoading: Dispatch<SetStateAction<boolean>>
+    ) => {
+      setLoading(true)
+      try {
+        const moodsRef = collection(db, 'moods')
+        const start = startOfMonth(new Date())
+        const end = endOfMonth(new Date())
+        const fbQuery = query(
+          moodsRef,
+          where('userId', '==', user?.uid),
+          where('timestamp', '>=', start),
+          where('timestamp', '<=', end)
+        )
+        const querySnapshot = await getDocs(fbQuery)
 
-      setMonthlyData(moodData)
-      setAnalysis(analyzeMoodData(moodData))
-    } catch (error) {
-      console.error('Error fetching monthly moods from Firebase:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
+        const moodData = querySnapshot.docs.map(
+          (doc) =>
+            ({
+              ...doc.data(),
+              timestamp: doc.data().timestamp.toDate(),
+            }) as MoodData
+        )
+
+        setMonthlyData(moodData)
+        setAnalysis(analyzeMoodData(moodData))
+      } catch (error) {
+        console.error('Error fetching monthly moods from Firebase:', error)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [user]
+  )
 
   useEffect(() => {
     if (user && isAuthenticated) {
-      fetchMonthlyMoods(user?.uid!, setMonthlyData, setLoading)
+      fetchMonthlyMoods(user!.uid!, setMonthlyData, setLoading)
     }
-  }, [isAuthenticated, user?.uid])
+  }, [isAuthenticated, user, fetchMonthlyMoods])
 
   return (
     <div className="mt-10 flex w-full flex-col">

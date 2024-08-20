@@ -24,7 +24,7 @@ export const analyzeMoodData = (data: MoodData[]): MoodAnalysis => {
   let prevDate: Date | null = null
 
   data.forEach((item) => {
-    const { mood, color, timestamp } = item
+    const { mood, timestamp } = item
     const isInMonth = timestamp >= startMonth && timestamp <= endMonth
     const isInWeek = timestamp >= startWeek && timestamp <= endWeek
     const weekday = getDay(timestamp) // Sunday = 0, Monday = 1, etc.

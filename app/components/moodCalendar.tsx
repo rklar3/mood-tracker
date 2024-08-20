@@ -1,82 +1,86 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React from 'react'
 import { Calendar } from '@/components/ui/calendar' // Adjust path as needed
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/authContext'
 import { DEFAULT_BACKGROUND } from '../lib/utils'
 
-export function MoodCalendar({
+// Define the props for the MoodCalendar component
+interface MoodCalendarProps {
+  date: Date | undefined
+  setDate: (date: Date) => void
+  setBackground: (gradient: string) => void
+  setPrompt: (prompt: string) => void
+  setMoodId: (id: string | null) => void
+  setPreviousMood: (mood: string) => void
+  setColor: (color: string | null) => void
+}
+
+const MoodCalendar: React.FC<MoodCalendarProps> = ({
   date,
   setDate,
   setBackground,
   setPrompt,
-  setCurrentMoodId,
+  setMoodId,
   setPreviousMood,
   setColor,
-}: {
-  date: Date | undefined
-  setDate: (arg0: Date) => void
-  setBackground: (arg0: string) => void
-  setPrompt: (arg0: any) => void
-  setCurrentMoodId: (arg0: any) => void
-  setPreviousMood: (arg0: any) => void
-  setColor: (arg0: any) => void
-}) {
-  const [loading, setLoading] = useState(false)
-  const { user, isAuthenticated } = useAuth()
+}) => {
+  const { user } = useAuth()
 
-  const fetchMoodForDate = async (selectedDate: Date | undefined) => {
-    if (!selectedDate || !user?.uid || !isAuthenticated) {
-      console.log('Missing date, user, or authentication status.')
-      return
-    }
-
-    if (!(selectedDate instanceof Date)) {
-      return
-    }
-
-    const start = new Date(selectedDate)
-    start.setHours(0, 0, 0, 0) // Start of the day
-    const end = new Date(selectedDate)
-    end.setHours(23, 59, 59, 999) // End of the day
-
-    setLoading(true)
-    try {
-      const moodsRef = collection(db, 'moods')
-      const fbQuery = query(
-        moodsRef,
-        where('userId', '==', user.uid),
-        where('timestamp', '>=', start),
-        where('timestamp', '<=', end)
-      )
-      const querySnapshot = await getDocs(fbQuery)
-
-      if (querySnapshot.docs && querySnapshot.docs.length > 0) {
-        const moodData = querySnapshot.docs[0].data()
-        setPrompt(moodData.prompt)
-        setBackground(moodData.gradient)
-        setCurrentMoodId(moodData.id)
-        setPreviousMood(moodData.mood)
-        setColor(moodData.color)
-      } else {
-        setPrompt(null)
-        setCurrentMoodId(null)
-        setBackground(DEFAULT_BACKGROUND)
-        setPreviousMood(null)
-        setColor(null)
+  /**
+   * Fetches mood data for the selected date from Firebase.
+   * Updates state with fetched mood data or sets default values if no data is found.
+   */
+  const fetchMoodForDate = React.useCallback(
+    async (selectedDate: Date | undefined) => {
+      if (!selectedDate || !user?.uid) {
+        console.log('Missing date or user.')
+        return
       }
-    } catch (error) {
-      console.error('Error fetching mood data from Firebase:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  useEffect(() => {
+      const start = new Date(selectedDate)
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(selectedDate)
+      end.setHours(23, 59, 59, 999)
+
+      try {
+        const moodsRef = collection(db, 'moods')
+        const fbQuery = query(
+          moodsRef,
+          where('userId', '==', user.uid),
+          where('timestamp', '>=', start),
+          where('timestamp', '<=', end)
+        )
+        const querySnapshot = await getDocs(fbQuery)
+
+        if (!querySnapshot.empty) {
+          const moodData = querySnapshot.docs[0].data()
+          setPrompt(moodData.prompt)
+          setBackground(moodData.gradient)
+          setMoodId(moodData.id)
+          setPreviousMood(moodData.mood)
+          setColor(moodData.color)
+        } else {
+          // Set default values if no mood data is found
+          setPrompt('')
+          setMoodId(null)
+          setBackground(DEFAULT_BACKGROUND)
+          setPreviousMood('')
+          setColor(null)
+        }
+      } catch (error) {
+        console.log('Error fetching mood data from Firebase:', error)
+      }
+    },
+    [user?.uid, setPrompt, setBackground, setMoodId, setPreviousMood, setColor]
+  )
+
+  // Fetch mood data whenever the date changes
+  React.useEffect(() => {
     fetchMoodForDate(date)
-  }, [date])
+  }, [date, fetchMoodForDate])
 
   return (
     <div>
@@ -94,3 +98,5 @@ export function MoodCalendar({
     </div>
   )
 }
+
+export default MoodCalendar

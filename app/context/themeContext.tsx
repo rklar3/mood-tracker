@@ -1,36 +1,47 @@
 'use client'
 
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react'
+import React, { createContext, useState, useEffect, ReactNode } from 'react'
 
-// Define the type for the context value
-type ThemeContextType = {
+export interface ThemeContextProps {
   isDarkMode: boolean
   toggleDarkMode: () => void
   background: string
   setBackground: (gradient: string) => void
 }
 
-// Create the context
-const ThemeContext = createContext<ThemeContextType>({
-  isDarkMode: false,
-  toggleDarkMode: () => {},
-  background: 'linear-gradient(270deg, #3498db, #e91e63, #9b59b6, #3498db)', // Default background
-  setBackground: () => {},
-})
+const ThemeContext = createContext<ThemeContextProps>(
+  undefined as unknown as ThemeContextProps
+)
 
-// Create a provider component
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const getInitialDarkMode = () => {
-    // const savedTheme = localStorage.getItem("darkMode");
-    const savedTheme = false
+/**
+ * A custom hook that exposes the ThemeContext to the developer. It throws an error if
+ * called outside of the ThemeContext provider
+ * @returns ThemeContextProps instance
+ */
+export const useTheme = (): ThemeContextProps => {
+  const context = React.useContext(ThemeContext)
+  if (context === undefined) {
+    throw new Error('useTheme must be used within ThemeContext provider')
+  }
+  return context
+}
 
-    return savedTheme ? JSON.parse(savedTheme) : false
+interface ThemeProviderProps {
+  children: ReactNode
+}
+
+/**
+ * A component that wraps around the ThemeContext's provider component. Any child components
+ * wrapped inside of the ThemeProvider can access various values of the ThemeContext
+ * @prop `children` - react child components that we want to wrap inside of ThemeProvider
+ */
+export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
+  const getInitialDarkMode = (): boolean => {
+    if (typeof window !== 'undefined') {
+      const savedTheme = localStorage.getItem('darkMode')
+      return savedTheme ? JSON.parse(savedTheme) : false
+    }
+    return false
   }
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getInitialDarkMode)
@@ -38,30 +49,34 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     'linear-gradient(270deg, #3498db, #e91e63, #9b59b6, #3498db)'
   )
 
-  // Save theme to local storage whenever it changes
   useEffect(() => {
-    localStorage.setItem('darkMode', JSON.stringify(isDarkMode))
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('darkMode', JSON.stringify(isDarkMode))
+    }
   }, [isDarkMode])
 
-  // Save background to local storage whenever it changes
   useEffect(() => {
-    // localStorage.setItem("background", background);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('background', background)
+    }
   }, [background])
 
   const toggleDarkMode = () => {
     setIsDarkMode((prevMode) => !prevMode)
   }
 
+  const value: ThemeContextProps = {
+    isDarkMode,
+    toggleDarkMode,
+    background,
+    setBackground,
+  }
+
   return (
-    <ThemeContext.Provider
-      value={{ isDarkMode, toggleDarkMode, background, setBackground }}
-    >
+    <ThemeContext.Provider value={value}>
       <div className={isDarkMode ? '' : 'dark'} style={{ background }}>
         {children}
       </div>
     </ThemeContext.Provider>
   )
 }
-
-// Create a custom hook to use the ThemeContext
-export const useTheme = () => useContext(ThemeContext)

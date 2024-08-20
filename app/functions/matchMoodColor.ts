@@ -5,6 +5,7 @@ export interface MoodMapping {
   [key: string]: {
     words: string[]
     color: string
+    gradient: string
   }
 }
 
@@ -15,6 +16,11 @@ export interface MoodMatchResult {
   colorFound: string
 }
 
+/**
+ * Matches a given prompt to a mood and its associated color and gradient.
+ * @param prompt - The input string to match against mood keywords.
+ * @returns MoodMatchResult object containing match results.
+ */
 export const matchMoodColor = (prompt: string): MoodMatchResult => {
   const lowercasedPrompt = prompt.toLowerCase()
   let matched = false

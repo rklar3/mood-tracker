@@ -1,42 +1,49 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import React from 'react'
 import { useAuth } from './context/authContext'
 import { useTheme } from './context/themeContext'
 import { doc, setDoc, updateDoc } from 'firebase/firestore'
 import { db } from './lib/firebase'
 import Loading from './components/loading'
-import { SignInButton } from './components/signInButton'
-import { MoodForm } from './components/moodForm'
+import MoodForm from './components/moodForm'
 import { fetchMood } from './functions/fetchTodayMood'
-import { matchMoodColor } from './functions/matchMoodColor'
-import { v4 as uuidv4 } from 'uuid'
-import { toast } from '@/components/ui/use-toast'
-import { MoodMetrics } from './components/moodMetrics'
-import { MoodCalendar } from './components/moodCalendar'
 import { Button } from '@/components/ui/button'
+import MoodPrompt from './components/moodTitle'
+import {
+  notifyMoodNotFound,
+  notifySuccessfulSubmission,
+  notifySubmissionError,
+} from './functions/toast'
+import { v4 as uuidv4 } from 'uuid'
+import { matchMoodColor } from './functions/matchMoodColor'
+import { useMood } from './hooks/useMood'
+import { MoodMetrics } from './components/moodMetrics'
+import MoodCalendar from './components/moodCalendar'
 
-export interface CurrentMood {
-  phrase: string
-  category: string
-  color: string
-  id?: string
-}
-
-export default function Home() {
+const Home: React.FC = () => {
   const { isAuthenticated, user } = useAuth()
   const { setBackground, background, isDarkMode } = useTheme()
-  const [prompt, setPrompt] = useState('')
-  const [currentMood, setCurrentMood] = useState('')
-  const [previousMood, setPreviousMood] = useState('')
 
-  const [currentMoodId, setCurrentMoodId] = useState<string | null>(null) // State for document ID
-  const [submitting, SetSubmitting] = useState<boolean>(false)
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false) // State to toggle editing mode
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
-  const [showCalendar, SetShowCalendar] = useState<boolean>(false)
-  const [color, setColor] = useState<string | null>(null)
+  // state to manage components
+  const [submitting, setSubmitting] = React.useState<boolean>(false)
+  const [loading, setLoading] = React.useState(true)
+  const [showCalendar, setShowCalendar] = React.useState<boolean>(false)
+
+  // Mood state
+  const {
+    getPrompt,
+    getCurrentMood,
+    getPreviousMood,
+    getMoodId,
+    getSelectedDate,
+    setPrompt,
+    setCurrentMood,
+    setPreviousMood,
+    setMoodId,
+    setColor,
+    setSelectedDate,
+  } = useMood()
 
   const handleMoodChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const { gradientFound } = matchMoodColor(event.target.value)
@@ -46,87 +53,87 @@ export default function Home() {
 
   const handleMoodSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    SetSubmitting(true)
+    setSubmitting(true)
     try {
-      const { gradientFound, moodFound, colorFound } = matchMoodColor(prompt)
-
+      const { gradientFound, moodFound, colorFound } =
+        matchMoodColor(getPrompt())
       const newId = uuidv4()
-
       const moodDocRef = doc(db, 'moods', newId)
 
       if (!moodFound) {
-        toast({
-          title: 'Mood not found',
-          description: `Please add a mood key word in ${prompt}`,
-          variant: 'destructive',
-        })
+        notifyMoodNotFound(getPrompt())
       } else {
         await setDoc(moodDocRef, {
           userId: user?.uid,
-          prompt,
+          prompt: getPrompt(),
           gradient: gradientFound,
           mood: moodFound,
           color: colorFound,
-          timestamp: selectedDate ?? new Date(),
+          timestamp: getSelectedDate() ?? new Date(),
           id: newId,
         })
+
+        notifySuccessfulSubmission()
+        setBackground(gradientFound)
+        setCurrentMood(moodFound)
+        setMoodId(newId)
+        setPrompt(getPrompt())
       }
-
-      setCurrentMood(moodFound)
-      setBackground(gradientFound)
-      setCurrentMoodId(newId)
-      setPrompt(prompt)
-
-      console.log('Mood submitted successfully')
     } catch (error) {
-      console.error('Error submitting mood to Firebase:', error)
-      setBackground('linear-gradient(270deg, #3498db, #e91e63, #9b59b6)')
+      notifySubmissionError()
+      console.log('Error submitting mood to Firebase:', error)
     } finally {
-      SetSubmitting(false)
+      setSubmitting(false)
     }
   }
 
   const handleUpdateSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    SetSubmitting(true)
+    setSubmitting(true)
     try {
-      const { gradientFound, moodFound, colorFound } = matchMoodColor(prompt)
+      const { gradientFound, moodFound, colorFound } =
+        matchMoodColor(getPrompt())
 
-      if (currentMoodId) {
-        const moodDocRef = doc(db, 'moods', currentMoodId)
+      if (getMoodId()) {
+        const moodDocRef = doc(db, 'moods', getMoodId()!)
 
         if (!moodFound) {
-          toast({
-            title: 'Mood not found',
-            description: `Please add a mood key word in ${prompt}`,
-            variant: 'destructive',
-          })
+          notifyMoodNotFound(getPrompt())
         } else {
           await updateDoc(moodDocRef, {
-            prompt,
+            prompt: getPrompt(),
             gradient: gradientFound,
             mood: moodFound,
             color: colorFound,
-            timestamp: selectedDate ?? new Date(),
+            timestamp: getSelectedDate() ?? new Date(),
           })
-        }
 
-        setCurrentMood(moodFound)
-        setBackground(gradientFound)
-        setPrompt(prompt)
+          notifySuccessfulSubmission()
+          setCurrentMood(moodFound)
+          setBackground(gradientFound)
+          setPrompt(getPrompt())
+        }
       } else {
         console.log('No moodId found for update')
       }
     } catch (error) {
+      notifySubmissionError()
       console.log('Error updating mood in Firebase:', error)
       setBackground('linear-gradient(270deg, #3498db, #e91e63, #9b59b6)')
     } finally {
-      SetSubmitting(false)
-      setEditing(false)
+      setSubmitting(false)
     }
   }
 
-  useEffect(() => {
+  const toggleCalendar = (): void => {
+    setShowCalendar(!showCalendar)
+  }
+
+  React.useEffect(() => {
+    console.log('currentMood ', getCurrentMood())
+  }, [getCurrentMood])
+
+  React.useEffect(() => {
     fetchMood(
       isAuthenticated,
       user,
@@ -134,15 +141,35 @@ export default function Home() {
       setPrompt,
       setCurrentMood,
       setLoading,
-      setCurrentMoodId,
+      setMoodId,
       setColor
     )
-  }, [isAuthenticated, user?.uid])
+  }, [
+    isAuthenticated,
+    user,
+    setBackground,
+    setPrompt,
+    setCurrentMood,
+    setLoading,
+    setMoodId,
+    setColor,
+  ])
 
-  useEffect(() => {}, [selectedDate])
-
-  if (loading) {
+  if (loading && isAuthenticated) {
     return <Loading />
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main
+        className="flex min-h-screen flex-col p-2"
+        style={{ background: background }}
+      >
+        <div className="flex-col items-center text-center">
+          <MoodPrompt />
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -150,75 +177,69 @@ export default function Home() {
       className="flex min-h-screen flex-col p-2"
       style={{ background: background }}
     >
-      {/* toggle between dashboard and calendar */}
-
-      {isAuthenticated && currentMood && (
+      {/* toggle calendar and dashboard buttons */}
+      {getCurrentMood() && (
         <div className="mb-2 ml-auto">
           <Button
             className="mr-2 bg-primary tracking-tight"
-            onClick={() => {
-              SetShowCalendar(!showCalendar)
-              if (showCalendar) {
-                setEditing(true)
-              }
-            }}
+            onClick={toggleCalendar}
           >
             {showCalendar ? 'View Dashboard' : 'View Calendar'}
           </Button>
         </div>
       )}
 
-      {/* toggle between dashboard and calendar */}
-      {isAuthenticated && !showCalendar && currentMood && (
-        <>
-          <div
-            className="flex min-h-screen flex-col items-center p-2 pt-2"
-            style={{ background: background }}
-          >
-            <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-3xl">
-              {`You submitted your mood as `}
-              <span className={isDarkMode ? 'text-primary' : 'text-muted'}>
-                {currentMood}
-              </span>
-              {` today`}
-            </h1>
-            <MoodMetrics />
-          </div>
-        </>
+      {/* state to include metrics */}
+      {!showCalendar && getCurrentMood() && (
+        <div
+          className="flex min-h-screen flex-col items-center p-2 pt-2"
+          style={{ background: background }}
+        >
+          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-3xl">
+            {`You submitted your mood as `}
+            <span className={isDarkMode ? 'text-primary' : 'text-muted'}>
+              {getCurrentMood()}
+            </span>
+            {` today`}
+          </h1>
+          <MoodMetrics />
+        </div>
       )}
 
-      {/* display calendar and prevous moods */}
-      {isAuthenticated && showCalendar && (
+      {/* state to include calendar */}
+      {showCalendar && (
         <div className="flex flex-col items-center p-2 pt-2">
           <h1 className="mb-10 scroll-m-10 text-4xl font-extrabold tracking-tight lg:text-3xl">
-            {previousMood ? `On this day you felt ` : 'no record mood recorded'}
+            {(getCurrentMood() ?? getPreviousMood())
+              ? `On this day you felt `
+              : 'No mood recorded'}
             <span className={isDarkMode ? 'text-primary' : 'text-muted'}>
-              {previousMood}
+              {getPreviousMood() ?? getCurrentMood()}
             </span>
           </h1>
           <MoodCalendar
-            date={selectedDate}
+            date={getSelectedDate()}
             setDate={setSelectedDate}
             setPrompt={setPrompt}
             setBackground={setBackground}
-            setCurrentMoodId={setCurrentMoodId}
+            setMoodId={setMoodId}
             setPreviousMood={setPreviousMood}
             setColor={setColor}
           />
         </div>
       )}
 
-      {/* daily message if mood not set */}
+      {/* state where user can enter daily mood */}
       <div className="flex-col items-center text-center">
-        {!currentMood && !editing && <MoodPrompt user={user} />}
-        {!isAuthenticated && <SignInButton />}
+        {!getCurrentMood() && !showCalendar && <MoodPrompt />}
       </div>
 
-      {isAuthenticated && (!currentMood || showCalendar) && (
+      {/* state where user can enter / update moods */}
+      {(!getCurrentMood() || showCalendar) && (
         <div className="flex-col items-center text-center">
           <MoodForm
             handleSubmit={(event) => {
-              if (currentMoodId) {
+              if (getMoodId()) {
                 handleUpdateSubmit(event)
               } else {
                 handleMoodSubmit(event)
@@ -226,7 +247,7 @@ export default function Home() {
             }}
             handleMoodChange={handleMoodChange}
             submitting={submitting}
-            initialPhrase={prompt}
+            initialPhrase={getPrompt()}
           />
         </div>
       )}
@@ -234,14 +255,4 @@ export default function Home() {
   )
 }
 
-// main title
-const MoodPrompt = ({ user }: { user: any }) => (
-  <>
-    <h1 className="scroll-m-10 text-4xl font-extrabold tracking-tight lg:text-3xl">
-      How are you feeling today {user?.displayName}?
-    </h1>
-    <p className="leading-7 [&:not(:first-child)]:mt-6">
-      A way to track your emotions.
-    </p>
-  </>
-)
+export default Home

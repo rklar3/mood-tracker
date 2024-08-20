@@ -1,11 +1,11 @@
-// LoginPage.tsx
 'use client'
-import { useEffect, useState } from 'react'
+
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useForm, SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
 import { signInWithEmailAndPassword } from 'firebase/auth'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -21,6 +21,7 @@ import { Loader2 } from 'lucide-react'
 import { useAuth } from '../context/authContext'
 import { auth } from '../lib/firebase'
 
+// Define schema for form validation
 const FormSchema = z.object({
   email: z.string().email({
     message: 'Invalid email address.',
@@ -30,13 +31,17 @@ const FormSchema = z.object({
   }),
 })
 
-export const SignInForm = () => {
+// Define the shape of form data
+type FormData = z.infer<typeof FormSchema>
+
+const SignInForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
   const { setUser, setIsAuthenticated } = useAuth()
 
-  const form = useForm<z.infer<typeof FormSchema>>({
+  // Initialize the form with validation schema
+  const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       email: '',
@@ -44,7 +49,8 @@ export const SignInForm = () => {
     },
   })
 
-  const onSubmit = async (data: z.infer<typeof FormSchema>) => {
+  // Handle form submission
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     setSubmitting(true)
     try {
       const userCredential = await signInWithEmailAndPassword(
@@ -70,7 +76,6 @@ export const SignInForm = () => {
         uid: user.uid,
         displayName: user.displayName ?? '',
         email: user.email ?? '',
-        // emailVerified: user.emailVerified,
         emailVerified: true,
       })
       setIsAuthenticated(true)
@@ -123,16 +128,23 @@ export const SignInForm = () => {
             </FormItem>
           )}
         />
-        {submitting ? (
-          <Button disabled className="mt-6">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
-          </Button>
-        ) : (
-          <Button type="submit" className="mt-6" variant={'default'}>
-            Log In
-          </Button>
-        )}
+        <Button
+          type="submit"
+          className="mt-6"
+          // variant={submitting ? 'default' : 'primary'}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
+            </>
+          ) : (
+            'Log In'
+          )}
+        </Button>
       </form>
     </Form>
   )
 }
+
+export default SignInForm

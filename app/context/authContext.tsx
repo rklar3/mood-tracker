@@ -1,22 +1,18 @@
 'use client'
 
-import {
-  createContext,
-  useContext,
-  ReactNode,
-  useState,
-  useEffect,
-} from 'react'
+import React, { createContext, ReactNode, useState, useEffect } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
+import router from 'next/router'
 
-interface User {
+export interface User {
   uid: string
-  displayName?: string | null
-  email?: string | null
+  displayName: string
+  email: string
   emailVerified: boolean
 }
-interface AuthContextProps {
+
+export interface AuthContextProps {
   isAuthenticated: boolean
   user: User | null
   setUser: (user: User | null) => void
@@ -24,18 +20,51 @@ interface AuthContextProps {
   logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined)
+const AuthContext = createContext<AuthContextProps>(
+  undefined as unknown as AuthContextProps
+)
 
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => {
+/**
+ * A custom hook that exposes the AuthContext to the developer. It throws an error if
+ * called outside of the AuthContext provider
+ * @returns AuthContextProps instance
+ */
+export const useAuth = (): AuthContextProps => {
+  const context = React.useContext(AuthContext)
+  if (context === undefined) {
+    throw new Error('useAuth must be used within AuthContext provider')
+  }
+  return context
+}
+
+interface AuthProviderProps {
+  children: ReactNode
+}
+
+/**
+ * A component that wraps around the AuthContext's provider component. Any child components
+ * wrapped inside of the AuthProvider can access various values of the AuthContext
+ * @prop `children` - react child components that we want to wrap inside of AuthProvider
+ */
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [user, setUser] = useState<User | null>(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser)
-      setIsAuthenticated(!!currentUser)
+      if (currentUser) {
+        const mappedUser: User = {
+          uid: currentUser.uid,
+          displayName: currentUser.displayName || '',
+          email: currentUser.email || '',
+          emailVerified: currentUser.emailVerified,
+        }
+        setUser(mappedUser)
+        setIsAuthenticated(true)
+      } else {
+        setUser(null)
+        setIsAuthenticated(false)
+      }
     })
 
     return () => unsubscribe()
@@ -46,24 +75,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({
       await signOut(auth)
       setUser(null)
       setIsAuthenticated(false)
+      router.push('/auth/signin')
     } catch (error) {
       console.error('Error signing out:', error)
     }
   }
 
-  return (
-    <AuthContext.Provider
-      value={{ isAuthenticated, user, setUser, setIsAuthenticated, logout }}
-    >
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export const useAuth = () => {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider')
+  const value: AuthContextProps = {
+    isAuthenticated,
+    user,
+    setUser,
+    setIsAuthenticated,
+    logout,
   }
-  return context
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

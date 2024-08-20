@@ -1,12 +1,15 @@
-// SignUpForm.tsx
 'use client'
-import { useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
-import { doc, setDoc } from 'firebase/firestore'
+
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useForm, SubmitHandler } from 'react-hook-form'
+import { z } from 'zod'
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -19,9 +22,10 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '../context/authContext'
 import { auth, db } from '../lib/firebase'
+import { useAuth } from '../context/authContext'
 
+// Define schema for form validation
 const FormSchema = z.object({
   name: z.string().min(2, {
     message: 'Name must be at least 2 characters.',
@@ -34,13 +38,25 @@ const FormSchema = z.object({
   }),
 })
 
-export function SignUpForm() {
+// Define the shape of form data
+type FormData = z.infer<typeof FormSchema>
+
+interface SignUpFormProps {
+  // Define any additional props if needed
+}
+
+/**
+ * SignUpForm component allows users to create a new account.
+ * It includes validation, user creation, and email verification.
+ */
+const SignUpForm: React.FC<SignUpFormProps> = () => {
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
   const router = useRouter()
-  const { setUser, setIsAuthenticated } = useAuth()
+  const { logout } = useAuth()
 
-  const form = useForm<z.infer<typeof FormSchema>>({
+  // Initialize the form with validation schema
+  const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
       name: '',
@@ -49,9 +65,14 @@ export function SignUpForm() {
     },
   })
 
-  async function onSubmit(data: z.infer<typeof FormSchema>) {
+  /**
+   * Handles form submission.
+   * @param data - Form data
+   */
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
     setSubmitting(true)
     try {
+      // Create user with email and password
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,
@@ -59,33 +80,24 @@ export function SignUpForm() {
       )
       const user = userCredential.user
 
-      await updateProfile(user, {
-        displayName: data.name,
-      })
-
+      // Store user data in Firestore
       await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
         displayName: data.name,
         email: data.email,
-        // emailVerified: user.emailVerified,
         emailVerified: true,
         createdAt: new Date().toISOString(),
       })
 
-      setUser({
-        uid: user.uid,
-        displayName: data.name,
-        email: data.email,
-        // emailVerified: user.emailVerified,
-        emailVerified: true,
-      })
-      setIsAuthenticated(true)
+      // Send email verification
+      await sendEmailVerification(user)
 
       toast({
         title: 'Account created successfully',
-        description: 'You can now use your new account.',
+        description: 'Please verify your email to sign in.',
       })
 
+      // Redirect to home page
       router.push('/')
     } catch (error) {
       toast({
@@ -97,6 +109,7 @@ export function SignUpForm() {
       console.error('Error creating user:', error)
     } finally {
       setSubmitting(false)
+      logout() // Optionally log out the user after signup
     }
   }
 
@@ -142,16 +155,23 @@ export function SignUpForm() {
             </FormItem>
           )}
         />
-        {submitting ? (
-          <Button disabled className="mt-6">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
-          </Button>
-        ) : (
-          <Button type="submit" className="mt-6" variant={'default'}>
-            Sign Up
-          </Button>
-        )}
+        <Button
+          type="submit"
+          className="mt-6"
+          variant="default"
+          disabled={submitting}
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
+            </>
+          ) : (
+            'Sign Up'
+          )}
+        </Button>
       </form>
     </Form>
   )
 }
+
+export default SignUpForm
