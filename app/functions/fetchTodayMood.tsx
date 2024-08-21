@@ -1,6 +1,7 @@
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { startOfDay } from 'date-fns'
 import { db } from '../lib/firebase'
+import { Dispatch, SetStateAction } from 'react'
 
 export interface CurrentMood {
   phrase: string
@@ -13,7 +14,9 @@ export const fetchMood = async (
   setBackground: (arg0: string) => void,
   setPrompt: (arg0: any) => void,
   setCurrentMood: (arg0: any) => void,
-  setLoading: (arg0: boolean) => void
+  setLoading: (arg0: boolean) => void,
+  setCurrentMoodId: Dispatch<SetStateAction<string | null>>,
+  setColor: Dispatch<SetStateAction<string | null>>
 ) => {
   if (isAuthenticated && user) {
     setLoading(true)
@@ -34,6 +37,8 @@ export const fetchMood = async (
         setBackground(mood.gradient)
         setPrompt(mood.prompt)
         setCurrentMood(mood.mood)
+        setCurrentMoodId(mood.id)
+        setColor(mood.color)
       }
     } catch (error) {
       console.error('Error fetching mood from Firebase:', error)
