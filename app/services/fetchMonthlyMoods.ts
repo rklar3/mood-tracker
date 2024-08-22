@@ -4,14 +4,14 @@ import { subDays, startOfDay } from 'date-fns'
 import { db } from '../lib/firebase'
 import { MoodData } from '../lib/interfaces'
 
-interface UseFetchMonthlyMoodsProps {
+interface UseFetchMoodsProps {
   user: { uid: string } | null
   setMonthlyData: React.Dispatch<React.SetStateAction<MoodData[]>>
   setLoading: React.Dispatch<React.SetStateAction<boolean>>
 }
 
 /**
- * Fetches moods entries in the last 30 days
+ * Fetches moods entries in the last 90 days
  * @param user - The authenticated user object containing the user's UID
  * @param setMonthlyData - Function to set the MonthlyData state
  * @param setLoading - Function to set the loading state
@@ -19,19 +19,19 @@ interface UseFetchMonthlyMoodsProps {
  * Probably not the best place to pass setState functions
  * but will just leave here for now
  */
-export const useFetchMonthlyMoods = ({
+export const useFetchMoodsByRange = ({
   user,
   setMonthlyData,
   setLoading,
-}: UseFetchMonthlyMoodsProps) => {
-  const fetchMonthlyMoods = useCallback(async () => {
+}: UseFetchMoodsProps) => {
+  const fetchMoods = useCallback(async () => {
     if (!user?.uid) return
 
     setLoading(true)
     try {
       const now = new Date()
-      const startOfPeriod = startOfDay(subDays(now, 30))
-      const endOfPeriod = startOfDay(now)
+      const startOfPeriod = startOfDay(subDays(now, 90))
+      const endOfPeriod = now
 
       const moodsRef = collection(db, 'moods')
       const firebaseQuery = query(
@@ -55,5 +55,5 @@ export const useFetchMonthlyMoods = ({
     }
   }, [user, setMonthlyData, setLoading])
 
-  return { fetchMonthlyMoods }
+  return { fetchMoods }
 }

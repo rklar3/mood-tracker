@@ -5,7 +5,11 @@ import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, SubmitHandler } from 'react-hook-form'
 import { z } from 'zod'
-import { signInWithEmailAndPassword } from 'firebase/auth'
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+} from 'firebase/auth'
+import { doc, setDoc } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -18,11 +22,14 @@ import {
 import { Input } from '@/components/ui/input'
 import { useToast } from '@/components/ui/use-toast'
 import { Loader2 } from 'lucide-react'
-import { useAuth } from '../context/authContext'
-import { auth } from '../lib/firebase'
+import { auth, db } from '../../lib/firebase'
+import { useAuth } from '../../context/authContext'
 
 // Define schema for form validation
 const FormSchema = z.object({
+  name: z.string().min(2, {
+    message: 'Name must be at least 2 characters.',
+  }),
   email: z.string().email({
     message: 'Invalid email address.',
   }),
@@ -34,75 +41,93 @@ const FormSchema = z.object({
 // Define the shape of form data
 type FormData = z.infer<typeof FormSchema>
 
-const SignInForm: React.FC = () => {
+/**
+ * SignUpForm component allows users to create a new account.
+ * It includes validation, user creation, and email verification.
+ */
+const SignUpForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
-  const router = useRouter()
-
   const { toast } = useToast()
-  const { setUser, setIsAuthenticated } = useAuth()
+  const router = useRouter()
+  const { logout } = useAuth()
 
   // Initialize the form with validation schema
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
     defaultValues: {
+      name: '',
       email: '',
       password: '',
     },
   })
 
-  // Handle form submission
+  /**
+   * Handles form submission.
+   * @param data - Form data
+   */
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setSubmitting(true)
     try {
-      const userCredential = await signInWithEmailAndPassword(
+      // Create user with email and password
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         data.email,
         data.password
       )
       const user = userCredential.user
 
-      // Check if the email is verified
-      if (!user.emailVerified) {
-        toast({
-          title: 'Email not verified',
-          description: 'Please verify your email before logging in.',
-          variant: 'destructive',
-        })
-        setSubmitting(false)
-        return
-      }
-
-      // Update authentication context
-      setUser({
+      // Store user data in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
         uid: user.uid,
-        displayName: user.displayName ?? '',
-        email: user.email ?? '',
+        displayName: data.name,
+        email: data.email,
         emailVerified: true,
+        createdAt: new Date().toISOString(),
       })
-      setIsAuthenticated(true)
+
+      // Send email verification
+      await sendEmailVerification(user)
 
       toast({
-        title: 'Logged in successfully',
-        description: 'Welcome back!',
+        title: 'Account created successfully',
+        description: 'Please verify your email to sign in.',
       })
 
-      // Redirect to home page or another route
+      // Redirect to home page
       router.push('/')
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Invalid email or password. Please try again.',
+        description:
+          'An error occurred while creating your account. Please try again.',
         variant: 'destructive',
       })
-      console.error('Error logging in:', error)
+      console.error('Error creating user:', error)
     } finally {
       setSubmitting(false)
+      logout() // Optionally log out the user after signup
     }
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="w-2/3 space-y-6">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="w-2/3 space-y-6 text-primary"
+      >
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Name</FormLabel>
+              <FormControl>
+                <Input placeholder="Name" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name="email"
@@ -129,13 +154,18 @@ const SignInForm: React.FC = () => {
             </FormItem>
           )}
         />
-        <Button type="submit" className="mt-6" disabled={submitting}>
+        <Button
+          type="submit"
+          className="mt-6"
+          variant="default"
+          disabled={submitting}
+        >
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
             </>
           ) : (
-            'Log In'
+            'Sign Up'
           )}
         </Button>
       </form>
@@ -143,4 +173,4 @@ const SignInForm: React.FC = () => {
   )
 }
 
-export default SignInForm
+export default SignUpForm

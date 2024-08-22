@@ -10,12 +10,13 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { findMoodStats } from '@/app/functions/analyzeMoodData'
-import { matchMoodColor } from '@/app/functions/matchMoodColor'
+import { useColors } from '@/app/context/colorContext'
 
 // Updated MoodAreaChart component
 const MoodAreaChart: React.FC<{
   stats: ReturnType<typeof findMoodStats>
 }> = ({ stats }) => {
+  const { matchMoodColor } = useColors()
   // Extract percentages from stats
   const chartData = [
     { key: 'Positive', metric: stats.positiveMoodCount },
@@ -85,13 +86,13 @@ const MoodAreaChart: React.FC<{
                 offset={10}
                 fontSize={14}
               />
-              <LabelList
+              {/* <LabelList
                 dataKey="metric"
                 position="right"
-                offset={50}
+                offset={20}
                 className="fill-secondary"
                 fontSize={20}
-              />
+              /> */}
             </Bar>
           </BarChart>
         </ChartContainer>

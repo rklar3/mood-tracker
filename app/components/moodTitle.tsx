@@ -3,7 +3,10 @@ import { useAuth } from '../context/authContext'
 import SignInButton from './signInButton'
 
 const MoodPrompt: React.FC = () => {
-  const { user, isAuthenticated } = useAuth()
+  const { user, loading } = useAuth()
+
+  // if user is loading return nothing
+  if (loading) return null
 
   return (
     <>
@@ -13,7 +16,11 @@ const MoodPrompt: React.FC = () => {
       <p className="leading-7 [&:not(:first-child)]:mt-6">
         A way to track your emotions.
       </p>
-      {!isAuthenticated && <SignInButton />}
+      {!user && !loading && (
+        <>
+          <SignInButton />
+        </>
+      )}
     </>
   )
 }

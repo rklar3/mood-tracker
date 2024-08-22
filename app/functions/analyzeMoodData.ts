@@ -1,5 +1,4 @@
 import { startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
-import { neutralMoods, positiveMoods, negativeMoods } from './moodSets'
 import { MoodData } from '../lib/interfaces'
 
 // Define the interface for the return type of findMoodStats
@@ -54,12 +53,44 @@ export interface MoodStats {
   neutralDaysPercentage: number
 }
 
+interface ColorDataType {
+  [mood: string]: {
+    score: 'positive' | 'neutral' | 'negative'
+    gradient: string
+    color: string
+    words: string[]
+  }
+}
+
 /**
  * Generates various mood statistics from the given entries.
- * @param entries - Array of mood data entries for the last 30 days.
+ * @param entries - Array of mood data entries for the last 90 days.
  * @returns An object containing various mood statistics.
  */
-export const findMoodStats = (entries: MoodData[]): MoodStats => {
+export const findMoodStats = (
+  entries: MoodData[],
+  colorsData: ColorDataType
+): MoodStats => {
+  const positiveMoods = new Set<string>()
+  const negativeMoods = new Set<string>()
+  const neutralMoods = new Set<string>()
+
+  // Populate sets based on the score of each mood in colorsData
+  for (const mood in colorsData) {
+    const moodData = colorsData[mood]
+    switch (moodData.score) {
+      case 'positive':
+        positiveMoods.add(mood)
+        break
+      case 'neutral':
+        neutralMoods.add(mood)
+        break
+      case 'negative':
+        negativeMoods.add(mood)
+        break
+    }
+  }
+
   // Initialize accumulators for mood statistics
   const moodCount: { [key: string]: number } = {}
   const moodColors: { [key: string]: string } = {}

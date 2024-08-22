@@ -11,7 +11,7 @@ const MoodMessage: React.FC<MoodSubmissionMessageProps> = ({
   secondaryText,
   subText,
 }) => (
-  <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-3xl">
+  <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight text-primary lg:text-3xl">
     {mainText}
     {secondaryText && <span className="text-secondary">{secondaryText}</span>}
     {subText}

@@ -3,7 +3,7 @@
 import React, { createContext, ReactNode, useState, useEffect } from 'react'
 import { onAuthStateChanged, signOut } from 'firebase/auth'
 import { auth } from '../lib/firebase'
-import router from 'next/router'
+import { useRouter } from 'next/navigation'
 
 export interface User {
   uid: string
@@ -15,6 +15,7 @@ export interface User {
 export interface AuthContextProps {
   isAuthenticated: boolean
   user: User | null
+  loading: boolean
   setUser: (user: User | null) => void
   setIsAuthenticated: (isAuthenticated: boolean) => void
   logout: () => Promise<void>
@@ -24,11 +25,6 @@ const AuthContext = createContext<AuthContextProps>(
   undefined as unknown as AuthContextProps
 )
 
-/**
- * A custom hook that exposes the AuthContext to the developer. It throws an error if
- * called outside of the AuthContext provider
- * @returns AuthContextProps instance
- */
 export const useAuth = (): AuthContextProps => {
   const context = React.useContext(AuthContext)
   if (context === undefined) {
@@ -41,14 +37,11 @@ interface AuthProviderProps {
   children: ReactNode
 }
 
-/**
- * A component that wraps around the AuthContext's provider component. Any child components
- * wrapped inside of the AuthProvider can access various values of the AuthContext
- * @prop `children` - react child components that we want to wrap inside of AuthProvider
- */
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
   const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState<boolean>(true)
+  const router = useRouter()
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
@@ -65,6 +58,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(null)
         setIsAuthenticated(false)
       }
+      setLoading(false) // Set loading to false after determining auth state
     })
 
     return () => unsubscribe()
@@ -84,6 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const value: AuthContextProps = {
     isAuthenticated,
     user,
+    loading,
     setUser,
     setIsAuthenticated,
     logout,

@@ -1,4 +1,15 @@
-export const moodMapping = {
+export interface ColorEntry {
+  words: string[]
+  gradient: string
+  color: string
+  score: 'positive' | 'negative' | 'neutral'
+}
+
+export interface MoodMapping {
+  [key: string]: ColorEntry
+}
+
+export const moodMapping: MoodMapping = {
   happy: {
     words: [
       'Happy',
@@ -18,6 +29,7 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #ffeb3b, #ff9800, #f44336)', // Existing gradient
     color: '#fbc02d', // Direct color for 'happy'
+    score: 'positive',
   },
   inspired: {
     words: [
@@ -35,11 +47,13 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #ff5722, #ffc107, #ff9800)', // Existing gradient
     color: '#ff7043', // Direct color for 'inspired'
+    score: 'positive',
   },
   grateful: {
     words: ['Grateful', 'Thankful', 'Gracious', 'Fulfilled', 'Appreciative'],
     gradient: 'linear-gradient(270deg, #ffeb3b, #cddc39, #4caf50)', // Existing gradient
     color: '#aed581', // Direct color for 'grateful'
+    score: 'positive',
   },
   confident: {
     words: [
@@ -52,6 +66,7 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #8bc34a, #4caf50, #388e3c)', // Existing gradient
     color: '#4caf50', // Direct color for 'confident'
+    score: 'positive',
   },
   friendly: {
     words: [
@@ -65,6 +80,7 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #ffc107, #ff9800, #ff5722)', // Existing gradient
     color: '#ffb74d', // Direct color for 'friendly'
+    score: 'positive',
   },
   excited: {
     words: [
@@ -77,20 +93,22 @@ export const moodMapping = {
       'Flamboyant',
       'Flirty',
       'Giggly',
-      'Happy',
     ],
     gradient: 'linear-gradient(270deg, #ff5722, #f44336, #e91e63)', // Existing gradient
     color: '#ff7043', // Direct color for 'excited'
+    score: 'positive',
   },
   calm: {
     words: ['Calm', 'Serene', 'Relaxed', 'Tranquil', 'Meditative'],
     gradient: 'linear-gradient(270deg, #4caf50, #8bc34a, #cddc39)', // Existing gradient
     color: '#81c784', // Direct color for 'calm'
+    score: 'neutral',
   },
   focused: {
     words: ['Concentrated', 'Attentive', 'Determined', 'Focused'],
     gradient: 'linear-gradient(270deg, #2196f3, #03a9f4, #00bcd4)', // Existing gradient
     color: '#64b5f6', // Direct color for 'focused'
+    score: 'neutral',
   },
   neutral: {
     words: [
@@ -104,6 +122,7 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #9e9e9e, #757575, #616161)', // Existing gradient
     color: '#9e9e9e', // Direct color for 'neutral'
+    score: 'neutral',
   },
   sad: {
     words: [
@@ -118,25 +137,30 @@ export const moodMapping = {
     ],
     gradient: 'linear-gradient(270deg, #2196f3, #03a9f4, #00bcd4)', // Existing gradient
     color: '#42a5f5', // Direct color for 'sad'
+    score: 'negative',
   },
   angry: {
     words: ['Angry', 'Mad', 'Irritated', 'Frustrated', 'Annoyed'],
     gradient: 'linear-gradient(270deg, #f44336, #e91e63, #9c27b0)', // Existing gradient
     color: '#e57373', // Direct color for 'angry'
+    score: 'negative',
   },
   anxious: {
     words: ['Anxious', 'Stressed', 'Overwhelmed', 'Uneasy', 'Helpless'],
     gradient: 'linear-gradient(270deg, #ff5722, #ff9800, #ffc107)', // Existing gradient
     color: '#ff8a65', // Direct color for 'anxious'
+    score: 'negative',
   },
   guilty: {
     words: ['Guilty', 'Embarrassed', 'Distressed'],
     gradient: 'linear-gradient(270deg, #d32f2f, #c2185b, #7b1fa2)', // Existing gradient
     color: '#e57373', // Direct color for 'guilty'
+    score: 'negative',
   },
   bored: {
     words: ['Bored', 'Displeased', 'Disinterested', 'Unmotivated', 'Tired'],
     gradient: 'linear-gradient(270deg, #9e9e9e, #b0bec5, #cfd8dc)', // Existing gradient
     color: '#bdbdbd', // Direct color for 'bored'
+    score: 'negative',
   },
 }

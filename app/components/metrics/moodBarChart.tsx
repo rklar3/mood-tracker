@@ -10,8 +10,8 @@ import {
   ChartTooltipContent,
 } from '@/components/ui/chart'
 import { findMoodStats } from '@/app/functions/analyzeMoodData'
-import { matchMoodColor } from '@/app/functions/matchMoodColor'
 import { MoodData } from '@/app/lib/interfaces'
+import { useColors } from '@/app/context/colorContext'
 
 interface MoodBarChartProps {
   data: MoodData[]
@@ -19,7 +19,10 @@ interface MoodBarChartProps {
 
 const MoodBarChart: React.FC<MoodBarChartProps> = ({ data = [] }) => {
   // Compute mood statistics from the data
-  const { moodByDayOfWeek } = findMoodStats(data)
+  const { colors } = useColors()
+
+  const { moodByDayOfWeek } = findMoodStats(data, colors)
+  const { matchMoodColor } = useColors()
 
   // Transform the moodByDayOfWeek data to the format required by BarChart
   const chartData = Object.keys(moodByDayOfWeek).map((dayOfWeek) => {

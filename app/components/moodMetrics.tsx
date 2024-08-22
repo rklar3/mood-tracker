@@ -7,15 +7,17 @@ import { MoodTrends } from './metrics/moodTrends'
 import { MoodStatistics } from './metrics/moodStats'
 import { MoodCharts } from './metrics/moodCharts'
 import { MoodCommonWords } from './metrics/moodWords'
-import { useFetchMonthlyMoods } from '../services/fetchMonthlyMoods'
 import { MoodData } from '../lib/interfaces'
+import { useColors } from '../context/colorContext'
+import { useFetchMoodsByRange } from '../services/fetchMonthlyMoods'
 
 const MoodMetrics: React.FC = () => {
   const { user } = useAuth()
   const [monthlyData, setMonthlyData] = React.useState<MoodData[]>([])
   const [loading, setLoading] = React.useState(false)
+  const { colors } = useColors()
 
-  const { fetchMonthlyMoods } = useFetchMonthlyMoods({
+  const { fetchMoods } = useFetchMoodsByRange({
     user,
     setMonthlyData,
     setLoading,
@@ -23,12 +25,12 @@ const MoodMetrics: React.FC = () => {
 
   React.useEffect(() => {
     if (user) {
-      fetchMonthlyMoods()
+      fetchMoods()
     }
-  }, [user, fetchMonthlyMoods])
+  }, [user, fetchMoods])
 
   // Calculate mood statistics based on the fetched data
-  const stats = findMoodStats(monthlyData)
+  const stats = findMoodStats(monthlyData, colors)
 
   return (
     <>

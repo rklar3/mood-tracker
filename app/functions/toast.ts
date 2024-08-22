@@ -32,3 +32,29 @@ export const notifyMoodNotFound = (prompt: string): void => {
     variant: 'destructive',
   })
 }
+
+/**
+ * Displays a toast notification for a successful action.
+ * @param title - The title of the notification.
+ * @param description - The description of the notification.
+ */
+export const notifySuccess = (title: string, description: string): void => {
+  toast({
+    title,
+    description,
+    variant: 'default',
+  })
+}
+
+/**
+ * Displays a toast notification for an error.
+ * @param title - The title of the notification.
+ * @param description - The description of the notification.
+ */
+export const notifyError = (title: string, description: string): void => {
+  toast({
+    title,
+    description,
+    variant: 'destructive',
+  })
+}

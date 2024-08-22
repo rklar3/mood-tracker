@@ -5,7 +5,6 @@ import { useAuth } from './context/authContext'
 import { useTheme } from './context/themeContext'
 import { Button } from '@/components/ui/button'
 import { v4 as uuidv4 } from 'uuid'
-import { matchMoodColor } from './functions/matchMoodColor'
 import { useMood } from './hooks/useMood'
 import { fetchMood } from './services/fetchTodayMood'
 import { addMood, updateMood } from './services/updateMood'
@@ -22,12 +21,16 @@ import {
 } from './functions/toast'
 import Loading from './components/loading'
 import MoodForm from './components/moodForm'
+import { useColors } from './context/colorContext'
+import { formatDate, getCurrentDate } from './lib/util'
+import { DEFAULT_BACKGROUND } from './lib/constant'
 
 // Main page of application
 // users can set, update mood and see dashboard
 const Home: React.FC = () => {
   const { isAuthenticated, user } = useAuth()
   const { setBackground, background } = useTheme()
+  const { matchMoodColor } = useColors()
 
   // state to manage components
   const [submitting, setSubmitting] = React.useState<boolean>(false)
@@ -76,6 +79,7 @@ const Home: React.FC = () => {
         notifySuccessfulSubmission()
         setBackground(gradientFound)
         setCurrentMood(moodFound)
+        setPreviousMood('')
         setMoodId(newId)
       }
     } catch (error) {
@@ -95,20 +99,23 @@ const Home: React.FC = () => {
 
       if (!matchedMood.moodFound) {
         notifyMoodNotFound(moodState.prompt)
-      }
-      await updateMood(
-        moodState.currentMoodId!,
-        moodState.prompt,
-        matchedMood.gradientFound,
-        matchedMood.moodFound,
-        matchedMood.colorFound,
-        moodState.selectedDate ?? new Date()
-      )
+      } else {
+        await updateMood(
+          moodState.currentMoodId!,
+          moodState.prompt,
+          matchedMood.gradientFound,
+          matchedMood.moodFound,
+          matchedMood.colorFound,
+          moodState.selectedDate ?? new Date()
+        )
 
-      notifySuccessfulSubmission()
-      setCurrentMood(matchedMood.moodFound)
-      setBackground(matchedMood.gradientFound)
-    } catch {
+        notifySuccessfulSubmission()
+        setCurrentMood(matchedMood.moodFound)
+        setPreviousMood('')
+        setBackground(matchedMood.gradientFound)
+      }
+    } catch (error) {
+      console.log('error ', error)
       notifySubmissionError()
     } finally {
       setSubmitting(false)
@@ -116,27 +123,69 @@ const Home: React.FC = () => {
   }
 
   const toggleCalendar = (): void => {
+    const { gradientFound } = matchMoodColor(moodState.currentMood)
+    setBackground(gradientFound)
     setShowCalendar(!showCalendar)
   }
 
   React.useEffect(() => {
-    fetchMood(
-      user,
-      setBackground,
-      setCurrentMood,
-      setLoading,
-      setMoodId,
-      setColor
-    )
+    if (user) {
+      fetchMood(
+        user,
+        setBackground,
+        setCurrentMood,
+        setLoading,
+        setMoodId,
+        setColor
+      )
+    }
   }, [user, setBackground, setColor, setCurrentMood, setMoodId])
 
-  const getMoodHeader = (): string =>
-    moodState.previousMood ? 'On this day you felt ' : 'No mood recorded '
+  // get the page header based on mood clicked / submitted
+  const getMoodHeader = (): string => {
+    if (background == DEFAULT_BACKGROUND) {
+      return 'No mood recorded '
+    }
 
-  const getMoodHeaderFound = (): boolean => !!moodState.previousMood
+    const currentDate = getCurrentDate()
+    const selectedDate = formatDate(moodState.selectedDate)
 
-  const getMoodTitle = (): string =>
-    moodState.previousMood || moodState.currentMood
+    if (selectedDate !== currentDate) {
+      if (moodState.previousMood || moodState.currentMood)
+        return 'On this day you felt '
+    }
+
+    if (selectedDate == currentDate) {
+      if (moodState.currentMood) return 'You submitted your mood as '
+    }
+
+    return ''
+  }
+
+  const getMoodHeaderFound = (): boolean => {
+    if (background == DEFAULT_BACKGROUND) {
+      return false
+    }
+
+    const currentDate = getCurrentDate()
+    const selectedDate = formatDate(moodState.selectedDate)
+
+    if (selectedDate !== currentDate) {
+      if (moodState.previousMood || moodState.currentMood) return true
+    }
+
+    if (selectedDate == currentDate) {
+      if (moodState.currentMood) return true
+    }
+
+    return false
+  }
+
+  const getMoodTitle = (): string => {
+    if (moodState.previousMood) return moodState.previousMood
+    if (moodState.currentMood) return moodState.currentMood
+    return ''
+  }
 
   if (loading && isAuthenticated) {
     return <Loading />

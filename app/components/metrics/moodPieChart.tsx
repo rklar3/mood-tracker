@@ -10,13 +10,15 @@ import {
 } from '@/components/ui/chart'
 import { findMoodStats } from '../../functions/analyzeMoodData'
 import { MoodData } from '@/app/lib/interfaces'
+import { useColors } from '@/app/context/colorContext'
 
 interface PieChartProps {
   data: MoodData[]
 }
 
 const MoodPieChart: React.FC<PieChartProps> = ({ data }) => {
-  const { moodEntries } = findMoodStats(data)
+  const { colors } = useColors()
+  const { moodEntries } = findMoodStats(data, colors)
 
   const chartData = Object.entries(moodEntries).map(([mood, moodData]) => ({
     mood,

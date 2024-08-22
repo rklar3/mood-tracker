@@ -5,7 +5,7 @@ import { Calendar } from '@/components/ui/calendar' // Adjust path as needed
 import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/authContext'
-import { DEFAULT_BACKGROUND } from '../lib/utils'
+import { DEFAULT_BACKGROUND } from '../lib/constant'
 
 // Define the props for the MoodCalendar component
 interface MoodCalendarProps {

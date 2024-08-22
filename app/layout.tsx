@@ -6,6 +6,7 @@ import Navbar from './components/navbar'
 import { ThemeProvider } from './context/themeContext'
 import { AuthProvider } from './context/authContext' // Import AuthProvider
 import { Toaster } from '@/components/ui/toaster'
+import { ColorProvider } from './context/colorContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,11 +25,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <AuthProvider>
-            <div className="min-h-screen bg-background text-foreground">
+            <ColorProvider>
               <Navbar />
               <main>{children}</main>
               <Toaster />
-            </div>
+            </ColorProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>
