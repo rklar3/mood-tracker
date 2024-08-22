@@ -10,18 +10,13 @@ export interface MoodState {
 }
 
 export interface MoodHook {
+  moodState: MoodState
   setPrompt: (prompt: string) => void
-  getPrompt: () => string
   setCurrentMood: (mood: string) => void
-  getCurrentMood: () => string
   setPreviousMood: (mood: string) => void
-  getPreviousMood: () => string
   setMoodId: (id: string | null) => void
-  getMoodId: () => string | null
   setColor: (color: string | null) => void
-  getColor: () => string | null
   setSelectedDate: (date: Date | undefined) => void
-  getSelectedDate: () => Date | undefined
   resetMoodState: () => void
 }
 
@@ -53,25 +48,24 @@ export const useMood = (): MoodHook => {
     setSelectedDate(undefined)
   }
 
+  // Grouping getters under moodState
+  const moodState: MoodState = {
+    prompt,
+    currentMood,
+    previousMood,
+    currentMoodId: moodId,
+    color,
+    selectedDate,
+  }
+
   return {
+    moodState,
     setPrompt,
-    getPrompt: () => prompt,
-
     setCurrentMood,
-    getCurrentMood: () => currentMood,
-
     setPreviousMood,
-    getPreviousMood: () => previousMood,
-
     setMoodId,
-    getMoodId: () => moodId,
-
     setColor,
-    getColor: () => color,
-
     setSelectedDate,
-    getSelectedDate: () => selectedDate,
-
     resetMoodState,
   }
 }

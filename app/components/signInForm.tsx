@@ -36,8 +36,9 @@ type FormData = z.infer<typeof FormSchema>
 
 const SignInForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
-  const { toast } = useToast()
   const router = useRouter()
+
+  const { toast } = useToast()
   const { setUser, setIsAuthenticated } = useAuth()
 
   // Initialize the form with validation schema
@@ -128,12 +129,7 @@ const SignInForm: React.FC = () => {
             </FormItem>
           )}
         />
-        <Button
-          type="submit"
-          className="mt-6"
-          // variant={submitting ? 'default' : 'primary'}
-          disabled={submitting}
-        >
+        <Button type="submit" className="mt-6" disabled={submitting}>
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait

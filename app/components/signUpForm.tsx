@@ -41,15 +41,11 @@ const FormSchema = z.object({
 // Define the shape of form data
 type FormData = z.infer<typeof FormSchema>
 
-interface SignUpFormProps {
-  // Define any additional props if needed
-}
-
 /**
  * SignUpForm component allows users to create a new account.
  * It includes validation, user creation, and email verification.
  */
-const SignUpForm: React.FC<SignUpFormProps> = () => {
+const SignUpForm: React.FC = () => {
   const [submitting, setSubmitting] = useState(false)
   const { toast } = useToast()
   const router = useRouter()

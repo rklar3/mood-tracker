@@ -2,7 +2,6 @@ import React from 'react'
 import { useAuth } from '../context/authContext'
 import SignInButton from './signInButton'
 
-// Define the functional component MoodPrompt
 const MoodPrompt: React.FC = () => {
   const { user, isAuthenticated } = useAuth()
 

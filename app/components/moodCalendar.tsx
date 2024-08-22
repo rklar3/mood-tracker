@@ -74,8 +74,21 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({
         console.log('Error fetching mood data from Firebase:', error)
       }
     },
-    [user?.uid, setPrompt, setBackground, setMoodId, setPreviousMood, setColor]
+    [user, setPrompt, setBackground, setMoodId, setPreviousMood, setColor]
   )
+
+  // Wrap setDate in useCallback to ensure it's stable and avoid unnecessary re-renders
+  const stableSetDate = React.useCallback(
+    (newDate: Date) => {
+      setDate(newDate)
+    },
+    [setDate]
+  )
+
+  // Fetch mood data on initial load (first page hit)
+  React.useEffect(() => {
+    stableSetDate(new Date())
+  }, [stableSetDate])
 
   // Fetch mood data whenever the date changes
   React.useEffect(() => {
@@ -83,7 +96,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({
   }, [date, fetchMoodForDate])
 
   return (
-    <div>
+    <div className="mt-10">
       <Calendar
         mode="single"
         selected={date}
@@ -93,7 +106,7 @@ const MoodCalendar: React.FC<MoodCalendarProps> = ({
             setDate(new Date(selectedDate))
           }
         }}
-        className="rounded-md border shadow"
+        className="rounded-md border border-primary shadow"
       />
     </div>
   )

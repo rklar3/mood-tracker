@@ -3,27 +3,31 @@
 import React from 'react'
 import { useAuth } from './context/authContext'
 import { useTheme } from './context/themeContext'
-import { doc, setDoc, updateDoc } from 'firebase/firestore'
-import { db } from './lib/firebase'
-import Loading from './components/loading'
-import MoodForm from './components/moodForm'
-import { fetchMood } from './functions/fetchTodayMood'
 import { Button } from '@/components/ui/button'
-import MoodPrompt from './components/moodTitle'
-import {
-  notifyMoodNotFound,
-  notifySuccessfulSubmission,
-  notifySubmissionError,
-} from './functions/toast'
 import { v4 as uuidv4 } from 'uuid'
 import { matchMoodColor } from './functions/matchMoodColor'
 import { useMood } from './hooks/useMood'
-import { MoodMetrics } from './components/moodMetrics'
+import { fetchMood } from './services/fetchTodayMood'
+import { addMood, updateMood } from './services/updateMood'
 import MoodCalendar from './components/moodCalendar'
+import MoodMetrics from './components/moodMetrics'
+import MainSection from './components/wrappers/mainWrapper'
+import CenteredColumn from './components/wrappers/centeredColumn'
+import MoodMessage from './components/wrappers/moodMessage'
+import MoodPrompt from './components/moodTitle'
+import {
+  notifyMoodNotFound,
+  notifySubmissionError,
+  notifySuccessfulSubmission,
+} from './functions/toast'
+import Loading from './components/loading'
+import MoodForm from './components/moodForm'
 
+// Main page of application
+// users can set, update mood and see dashboard
 const Home: React.FC = () => {
   const { isAuthenticated, user } = useAuth()
-  const { setBackground, background, isDarkMode } = useTheme()
+  const { setBackground, background } = useTheme()
 
   // state to manage components
   const [submitting, setSubmitting] = React.useState<boolean>(false)
@@ -32,11 +36,7 @@ const Home: React.FC = () => {
 
   // Mood state
   const {
-    getPrompt,
-    getCurrentMood,
-    getPreviousMood,
-    getMoodId,
-    getSelectedDate,
+    moodState,
     setPrompt,
     setCurrentMood,
     setPreviousMood,
@@ -55,29 +55,28 @@ const Home: React.FC = () => {
     event.preventDefault()
     setSubmitting(true)
     try {
-      const { gradientFound, moodFound, colorFound } =
-        matchMoodColor(getPrompt())
+      const { gradientFound, moodFound, colorFound } = matchMoodColor(
+        moodState.prompt
+      )
       const newId = uuidv4()
-      const moodDocRef = doc(db, 'moods', newId)
 
       if (!moodFound) {
-        notifyMoodNotFound(getPrompt())
+        notifyMoodNotFound(moodState.prompt)
       } else {
-        await setDoc(moodDocRef, {
-          userId: user?.uid,
-          prompt: getPrompt(),
-          gradient: gradientFound,
-          mood: moodFound,
-          color: colorFound,
-          timestamp: getSelectedDate() ?? new Date(),
-          id: newId,
-        })
+        await addMood(
+          user!.uid,
+          newId,
+          moodState.prompt,
+          gradientFound,
+          moodFound,
+          colorFound,
+          moodState.selectedDate ?? new Date()
+        )
 
         notifySuccessfulSubmission()
         setBackground(gradientFound)
         setCurrentMood(moodFound)
         setMoodId(newId)
-        setPrompt(getPrompt())
       }
     } catch (error) {
       notifySubmissionError()
@@ -90,36 +89,27 @@ const Home: React.FC = () => {
   const handleUpdateSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setSubmitting(true)
+
     try {
-      const { gradientFound, moodFound, colorFound } =
-        matchMoodColor(getPrompt())
+      const matchedMood = matchMoodColor(moodState.prompt)
 
-      if (getMoodId()) {
-        const moodDocRef = doc(db, 'moods', getMoodId()!)
-
-        if (!moodFound) {
-          notifyMoodNotFound(getPrompt())
-        } else {
-          await updateDoc(moodDocRef, {
-            prompt: getPrompt(),
-            gradient: gradientFound,
-            mood: moodFound,
-            color: colorFound,
-            timestamp: getSelectedDate() ?? new Date(),
-          })
-
-          notifySuccessfulSubmission()
-          setCurrentMood(moodFound)
-          setBackground(gradientFound)
-          setPrompt(getPrompt())
-        }
-      } else {
-        console.log('No moodId found for update')
+      if (!matchedMood.moodFound) {
+        notifyMoodNotFound(moodState.prompt)
       }
-    } catch (error) {
+      await updateMood(
+        moodState.currentMoodId!,
+        moodState.prompt,
+        matchedMood.gradientFound,
+        matchedMood.moodFound,
+        matchedMood.colorFound,
+        moodState.selectedDate ?? new Date()
+      )
+
+      notifySuccessfulSubmission()
+      setCurrentMood(matchedMood.moodFound)
+      setBackground(matchedMood.gradientFound)
+    } catch {
       notifySubmissionError()
-      console.log('Error updating mood in Firebase:', error)
-      setBackground('linear-gradient(270deg, #3498db, #e91e63, #9b59b6)')
     } finally {
       setSubmitting(false)
     }
@@ -130,30 +120,23 @@ const Home: React.FC = () => {
   }
 
   React.useEffect(() => {
-    console.log('currentMood ', getCurrentMood())
-  }, [getCurrentMood])
-
-  React.useEffect(() => {
     fetchMood(
-      isAuthenticated,
       user,
       setBackground,
-      setPrompt,
       setCurrentMood,
       setLoading,
       setMoodId,
       setColor
     )
-  }, [
-    isAuthenticated,
-    user,
-    setBackground,
-    setPrompt,
-    setCurrentMood,
-    setLoading,
-    setMoodId,
-    setColor,
-  ])
+  }, [user, setBackground, setColor, setCurrentMood, setMoodId])
+
+  const getMoodHeader = (): string =>
+    moodState.previousMood ? 'On this day you felt ' : 'No mood recorded '
+
+  const getMoodHeaderFound = (): boolean => !!moodState.previousMood
+
+  const getMoodTitle = (): string =>
+    moodState.previousMood || moodState.currentMood
 
   if (loading && isAuthenticated) {
     return <Loading />
@@ -161,64 +144,45 @@ const Home: React.FC = () => {
 
   if (!isAuthenticated) {
     return (
-      <main
-        className="flex min-h-screen flex-col p-2"
-        style={{ background: background }}
-      >
-        <div className="flex-col items-center text-center">
+      <MainSection background={background}>
+        <CenteredColumn>
           <MoodPrompt />
-        </div>
-      </main>
+        </CenteredColumn>
+      </MainSection>
     )
   }
 
   return (
-    <main
-      className="flex min-h-screen flex-col p-2"
-      style={{ background: background }}
-    >
+    <MainSection background={background}>
       {/* toggle calendar and dashboard buttons */}
-      {getCurrentMood() && (
-        <div className="mb-2 ml-auto">
-          <Button
-            className="mr-2 bg-primary tracking-tight"
-            onClick={toggleCalendar}
-          >
+      {moodState.currentMood && (
+        <div className="ml-auto">
+          <Button className="mr-2 tracking-tight" onClick={toggleCalendar}>
             {showCalendar ? 'View Dashboard' : 'View Calendar'}
           </Button>
         </div>
       )}
 
       {/* state to include metrics */}
-      {!showCalendar && getCurrentMood() && (
-        <div
-          className="flex min-h-screen flex-col items-center p-2 pt-2"
-          style={{ background: background }}
-        >
-          <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-3xl">
-            {`You submitted your mood as `}
-            <span className={isDarkMode ? 'text-primary' : 'text-muted'}>
-              {getCurrentMood()}
-            </span>
-            {` today`}
-          </h1>
+      {!showCalendar && moodState.currentMood && (
+        <CenteredColumn>
+          <MoodMessage
+            mainText="You submitted your mood as "
+            secondaryText={moodState.currentMood}
+          ></MoodMessage>
           <MoodMetrics />
-        </div>
+        </CenteredColumn>
       )}
 
       {/* state to include calendar */}
       {showCalendar && (
-        <div className="flex flex-col items-center p-2 pt-2">
-          <h1 className="mb-10 scroll-m-10 text-4xl font-extrabold tracking-tight lg:text-3xl">
-            {(getCurrentMood() ?? getPreviousMood())
-              ? `On this day you felt `
-              : 'No mood recorded'}
-            <span className={isDarkMode ? 'text-primary' : 'text-muted'}>
-              {getPreviousMood() ?? getCurrentMood()}
-            </span>
-          </h1>
+        <CenteredColumn>
+          <MoodMessage
+            mainText={getMoodHeader()}
+            secondaryText={getMoodHeaderFound() ? getMoodTitle() : ''}
+          ></MoodMessage>
           <MoodCalendar
-            date={getSelectedDate()}
+            date={moodState.selectedDate}
             setDate={setSelectedDate}
             setPrompt={setPrompt}
             setBackground={setBackground}
@@ -226,20 +190,20 @@ const Home: React.FC = () => {
             setPreviousMood={setPreviousMood}
             setColor={setColor}
           />
-        </div>
+        </CenteredColumn>
       )}
 
       {/* state where user can enter daily mood */}
-      <div className="flex-col items-center text-center">
-        {!getCurrentMood() && !showCalendar && <MoodPrompt />}
-      </div>
+      <CenteredColumn>
+        {!moodState.currentMood && !showCalendar && <MoodPrompt />}
+      </CenteredColumn>
 
       {/* state where user can enter / update moods */}
-      {(!getCurrentMood() || showCalendar) && (
+      {(!moodState.currentMood || showCalendar) && (
         <div className="flex-col items-center text-center">
           <MoodForm
             handleSubmit={(event) => {
-              if (getMoodId()) {
+              if (moodState.currentMoodId) {
                 handleUpdateSubmit(event)
               } else {
                 handleMoodSubmit(event)
@@ -247,11 +211,11 @@ const Home: React.FC = () => {
             }}
             handleMoodChange={handleMoodChange}
             submitting={submitting}
-            initialPhrase={getPrompt()}
+            initialPhrase={moodState.prompt}
           />
         </div>
       )}
-    </main>
+    </MainSection>
   )
 }
 

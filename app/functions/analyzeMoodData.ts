@@ -1,134 +1,275 @@
-import {
-  startOfMonth,
-  endOfMonth,
-  startOfWeek,
-  endOfWeek,
-  getDay,
-  getHours,
-} from 'date-fns'
-import { MoodAnalysis, MoodData } from '../components/moodMetrics'
+import { startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
+import { neutralMoods, positiveMoods, negativeMoods } from './moodSets'
+import { MoodData } from '../lib/interfaces'
 
-export const analyzeMoodData = (data: MoodData[]): MoodAnalysis => {
-  const moodCountsMonth: { [key: string]: number } = {}
-  const moodCountsWeekday: { [key: string]: { [key: string]: number } } = {}
-  const moodCountsWeek: { [key: string]: number } = {}
-  const hourCounts: { [key: number]: number } = {}
+// Define the interface for the return type of findMoodStats
+export interface MoodStats {
+  mostCommon: {
+    mood: string
+    count: number
+    color: string
+  }
+  leastCommon: {
+    mood: string
+    count: number
+    color: string
+  }
+  moodEntries: {
+    [mood: string]: {
+      count: number
+      color: string
+    }
+  }
+  moodByDayOfWeek: {
+    [dayOfWeek: string]: {
+      [mood: string]: {
+        count: number
+        color: string
+      }
+    }
+  }
+  mostCommonPrompt: {
+    prompt: string
+    count: number
+  }
+  leastCommonPrompt: {
+    prompt: string
+    count: number
+  }
+  mostCommonWords: {
+    [word: string]: number
+  }
+  leastCommonWords: {
+    [word: string]: number
+  }
+  positiveMoodPercentage: number
+  negativeMoodPercentage: number
+  positiveMoodCount: number
+  negativeMoodCount: number
+  neutralMoodCount: number
+  reportedDaysCount: number
+  unreportedDaysCount: number
+  reportedDaysPercentage: number
+  unreportedDaysPercentage: number
+  neutralDaysPercentage: number
+}
 
-  const now = new Date()
-  const startMonth = startOfMonth(now)
-  const endMonth = endOfMonth(now)
-  const startWeek = startOfWeek(now)
-  const endWeek = endOfWeek(now)
+/**
+ * Generates various mood statistics from the given entries.
+ * @param entries - Array of mood data entries for the last 30 days.
+ * @returns An object containing various mood statistics.
+ */
+export const findMoodStats = (entries: MoodData[]): MoodStats => {
+  // Initialize accumulators for mood statistics
+  const moodCount: { [key: string]: number } = {}
+  const moodColors: { [key: string]: string } = {}
+  const moodByDayOfWeek: {
+    [key: string]: { [mood: string]: { count: number; color: string } }
+  } = {}
+  const promptCount: { [prompt: string]: number } = {}
+  const wordCount: { [word: string]: number } = {}
+  const reportedDays = new Set<string>() // To track days with reported moods
+  const neutralDays = new Set<string>() // To track days with only neutral moods
 
-  let numDaysWithContinuousMood = 1 // initialize to 1 since we have at least 1 mood data point
-  let prevDate: Date | null = null
+  /**
+   * Tokenizes a prompt into lowercase words.
+   * @param prompt - The prompt string to tokenize.
+   * @returns An array of tokenized words.
+   */
+  const tokenizePrompt = (prompt: string) =>
+    prompt.toLowerCase().match(/\b\w+\b/g) || []
 
-  data.forEach((item) => {
-    const { mood, timestamp } = item
-    const isInMonth = timestamp >= startMonth && timestamp <= endMonth
-    const isInWeek = timestamp >= startWeek && timestamp <= endWeek
-    const weekday = getDay(timestamp) // Sunday = 0, Monday = 1, etc.
-    const hour = getHours(timestamp)
+  /**
+   * Updates statistics based on a single mood entry.
+   * @param entry - A single mood data entry.
+   */
+  const updateMoodStats = (entry: MoodData) => {
+    const mood = entry.mood
+    const entryDate = new Date(entry.timestamp)
+    const dayOfWeek = entryDate.toLocaleString('en-US', { weekday: 'long' })
+    const dateKey = entryDate.toISOString().split('T')[0]
 
-    // Count moods for the month
-    if (isInMonth) {
-      moodCountsMonth[mood] = (moodCountsMonth[mood] || 0) + 1
+    // Update mood count and color mapping
+    moodCount[mood] = (moodCount[mood] || 0) + 1
+    moodColors[mood] = entry.color
+    reportedDays.add(dateKey)
+
+    // Initialize moodByDayOfWeek for the current day of the week if not already present
+    if (!moodByDayOfWeek[dayOfWeek]) {
+      moodByDayOfWeek[dayOfWeek] = {}
     }
 
-    // Count moods by weekday
-    if (!moodCountsWeekday[weekday]) {
-      moodCountsWeekday[weekday] = {}
+    // Update mood count for the day of the week
+    if (!moodByDayOfWeek[dayOfWeek][mood]) {
+      moodByDayOfWeek[dayOfWeek][mood] = { count: 0, color: moodColors[mood] }
     }
-    moodCountsWeekday[weekday][mood] =
-      (moodCountsWeekday[weekday][mood] || 0) + 1
+    moodByDayOfWeek[dayOfWeek][mood].count += 1
 
-    // Count moods for the week
-    if (isInWeek) {
-      moodCountsWeek[mood] = (moodCountsWeek[mood] || 0) + 1
+    // Update prompt count
+    const prompt = entry.prompt || ''
+    promptCount[prompt] = (promptCount[prompt] || 0) + 1
+
+    // Tokenize and count words in the prompt
+    for (const word of tokenizePrompt(prompt)) {
+      wordCount[word] = (wordCount[word] || 0) + 1
     }
 
-    // Count hours
-    hourCounts[hour] = (hourCounts[hour] || 0) + 1
-
-    // Check for continuous mood submissions
-    if (prevDate && timestamp.getDate() === prevDate.getDate()) {
-      numDaysWithContinuousMood++
+    // Track neutral days
+    if (neutralMoods.has(mood)) {
+      neutralDays.add(dateKey)
     }
-    prevDate = timestamp
-  })
+  }
 
-  // Find most common mood for the month
-  const mostCommonMoodMonth = Object.entries(moodCountsMonth).reduce(
-    (acc, [mood, count]) =>
-      count > acc.count
-        ? {
-            mood,
-            color: data.find((item) => item.mood === mood)?.color || '',
-            count,
-          }
-        : acc,
-    { mood: '', color: '', count: 0 }
+  /**
+   * Finds the most and least common items from a count map.
+   * @param countMap - A map of items and their counts.
+   * @returns An object containing the most common item, least common item, and their counts.
+   */
+  const findMostAndLeastCommon = (countMap: { [key: string]: number }) => {
+    let mostCommon = ''
+    let leastCommon = ''
+    let highestCount = 0
+    let lowestCount = Infinity
+
+    for (const [key, count] of Object.entries(countMap)) {
+      if (count > highestCount) {
+        mostCommon = key
+        highestCount = count
+      }
+      if (count < lowestCount) {
+        leastCommon = key
+        lowestCount = count
+      }
+    }
+
+    return { mostCommon, leastCommon, highestCount, lowestCount }
+  }
+
+  /**
+   * Calculates the percentage based on a count and total value.
+   * @param count - The count to calculate the percentage for.
+   * @param total - The total value to calculate the percentage against.
+   * @returns The calculated percentage.
+   */
+  const calculatePercentages = (count: number, total: number) =>
+    total > 0 ? (count / total) * 100 : 0
+
+  // Sort entries by timestamp
+  entries.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
   )
 
-  // Find least common mood for the month
-  const leastCommonMoodMonth = Object.entries(moodCountsMonth).reduce(
-    (acc, [mood, count]) =>
-      count < acc.count
-        ? {
-            mood,
-            color: data.find((item) => item.mood === mood)?.color || '',
-            count,
-          }
-        : acc,
-    { mood: '', color: '', count: Number.MAX_SAFE_INTEGER }
+  // Process each entry to update statistics
+  for (const entry of entries) {
+    updateMoodStats(entry)
+  }
+
+  // Get most and least common mood
+  const {
+    mostCommon: mostCommonMood,
+    leastCommon: leastCommonMood,
+    highestCount,
+    lowestCount,
+  } = findMostAndLeastCommon(moodCount)
+  const moodEntries = Object.fromEntries(
+    Object.entries(moodCount).map(([mood, count]) => [
+      mood,
+      { count, color: moodColors[mood] },
+    ])
   )
 
-  // Find most common mood by weekday
-  const mostCommonMoodByWeekday = Object.keys(moodCountsWeekday).reduce(
-    (acc, weekday) => {
-      const mostCommon = Object.entries(moodCountsWeekday[weekday]).reduce(
-        (acc, [mood, count]) =>
-          count > acc.count
-            ? {
-                mood,
-                color: data.find((item) => item.mood === mood)?.color || '',
-                count,
-              }
-            : acc,
-        { mood: '', color: '', count: 0 }
-      )
-      acc[weekday] = mostCommon
-      return acc
-    },
-    {} as { [key: string]: { mood: string; color: string; count: number } }
+  // Get most and least common prompts
+  const {
+    mostCommon: mostCommonPrompt,
+    leastCommon: leastCommonPrompt,
+    highestCount: highestPromptCount,
+    lowestCount: lowestPromptCount,
+  } = findMostAndLeastCommon(promptCount)
+
+  // Get most and least common words
+  const sortedWords = Object.entries(wordCount).sort(
+    ([_, countA], [, countB]) => countB - countA
+  )
+  const mostCommonWords = Object.fromEntries(sortedWords.slice(0, 4))
+  const leastCommonWords = Object.fromEntries(
+    sortedWords.filter(
+      ([_, count]) =>
+        count ===
+        (sortedWords.length > 4 ? sortedWords[sortedWords.length - 1][1] : 1)
+    )
   )
 
-  // Find most common mood for the week
-  const mostCommonMoodThisWeek = Object.entries(moodCountsWeek).reduce(
-    (acc, [mood, count]) =>
-      count > acc.count
-        ? {
-            mood,
-            color: data.find((item) => item.mood === mood)?.color || '',
-            count,
-          }
-        : acc,
-    { mood: '', color: '', count: 0 }
+  // Calculate reported and unreported days
+  const monthStart = startOfMonth(new Date())
+  const monthEnd = endOfMonth(new Date())
+  const totalDaysInMonth = eachDayOfInterval({
+    start: monthStart,
+    end: monthEnd,
+  }).length
+  const reportedDaysCount = reportedDays.size
+  const unreportedDaysCount = totalDaysInMonth - reportedDaysCount
+  const reportedDaysPercentage = calculatePercentages(
+    reportedDaysCount,
+    totalDaysInMonth
+  )
+  const unreportedDaysPercentage = calculatePercentages(
+    unreportedDaysCount,
+    totalDaysInMonth
   )
 
-  // Find most common time of day
-  const mostCommonTimeOfDay = Object.entries(hourCounts).reduce(
-    (acc, [hour, count]) =>
-      count > acc.count ? { hour: parseInt(hour), count } : acc,
-    { hour: 0, count: 0 }
+  // Calculate positive, negative, and neutral mood percentages based on reported days
+  const positiveMoodCount = Object.entries(moodCount)
+    .filter(([mood]) => positiveMoods.has(mood))
+    .reduce((sum, [, count]) => sum + count, 0)
+  const negativeMoodCount = Object.entries(moodCount)
+    .filter(([mood]) => negativeMoods.has(mood))
+    .reduce((sum, [, count]) => sum + count, 0)
+  const neutralMoodCount = Object.entries(moodCount)
+    .filter(([mood]) => neutralMoods.has(mood))
+    .reduce((sum, [, count]) => sum + count, 0)
+
+  const positiveMoodPercentage = calculatePercentages(
+    positiveMoodCount,
+    reportedDaysCount
+  )
+  const negativeMoodPercentage = calculatePercentages(
+    negativeMoodCount,
+    reportedDaysCount
+  )
+  const neutralDaysPercentage = calculatePercentages(
+    neutralMoodCount,
+    reportedDaysCount
   )
 
   return {
-    mostCommonMoodMonth,
-    leastCommonMoodMonth,
-    numDaysWithContinuousMood,
-    mostCommonTimeOfDay,
-    mostCommonMoodByWeekday,
-    mostCommonMoodThisWeek,
+    mostCommon: {
+      mood: mostCommonMood,
+      count: highestCount,
+      color: moodColors[mostCommonMood],
+    },
+    leastCommon: {
+      mood: leastCommonMood,
+      count: lowestCount,
+      color: moodColors[leastCommonMood],
+    },
+    moodEntries,
+    moodByDayOfWeek,
+    mostCommonPrompt: { prompt: mostCommonPrompt, count: highestPromptCount },
+    leastCommonPrompt: {
+      prompt: leastCommonPrompt,
+      count: lowestPromptCount === Infinity ? 0 : lowestPromptCount,
+    },
+    mostCommonWords,
+    leastCommonWords,
+    positiveMoodPercentage,
+    negativeMoodPercentage,
+    positiveMoodCount,
+    negativeMoodCount,
+    neutralMoodCount,
+    reportedDaysCount,
+    unreportedDaysCount,
+    reportedDaysPercentage,
+    unreportedDaysPercentage,
+    neutralDaysPercentage,
   }
 }

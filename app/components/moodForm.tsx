@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2 } from 'lucide-react'
@@ -21,7 +21,12 @@ const MoodForm: React.FC<MoodFormProps> = ({
   initialPhrase = 'I feel happy today',
 }) => {
   // State to manage the input value
-  const [inputValue, setInputValue] = useState(initialPhrase)
+  const [inputValue, setInputValue] = React.useState(initialPhrase)
+
+  // Effect to update inputValue when initialPhrase changes
+  React.useEffect(() => {
+    setInputValue(initialPhrase)
+  }, [initialPhrase])
 
   /**
    * Handles input change and updates local state and parent component.
@@ -42,22 +47,18 @@ const MoodForm: React.FC<MoodFormProps> = ({
           <Input
             type="text"
             placeholder={initialPhrase}
-            className="max-w-lg flex-1"
+            className="h-14 w-full max-w-2xl flex-1 border-primary px-4 py-2 text-lg"
             onChange={handleInputChange}
             value={inputValue}
           />
-          <Button
-            type="submit"
-            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-            variant="default"
-          >
+          <Button type="submit" variant="default">
             Save
           </Button>
         </>
       ) : (
         <Button
           disabled
-          className="flex items-center justify-center bg-primary-foreground text-primary hover:bg-primary-foreground/90"
+          className="justify-centerhover:bg-primary-foreground/90 flex items-center"
         >
           <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
         </Button>

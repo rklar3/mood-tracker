@@ -1,6 +1,7 @@
 'use client'
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react'
+import { DEFAULT_BACKGROUND } from '../lib/utils'
 
 export interface ThemeContextProps {
   isDarkMode: boolean
@@ -45,9 +46,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   }
 
   const [isDarkMode, setIsDarkMode] = useState<boolean>(getInitialDarkMode)
-  const [background, setBackground] = useState<string>(
-    'linear-gradient(270deg, #3498db, #e91e63, #9b59b6, #3498db)'
-  )
+  const [background, setBackground] = useState<string>(DEFAULT_BACKGROUND)
 
   useEffect(() => {
     if (typeof window !== 'undefined') {

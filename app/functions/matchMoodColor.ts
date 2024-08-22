@@ -28,9 +28,11 @@ export const matchMoodColor = (prompt: string): MoodMatchResult => {
   let gradientFound = DEFAULT_BACKGROUND
   let colorFound = ''
 
+  // Iterate over moodMapping to find the matching mood
   for (const [mood, { words, color, gradient }] of Object.entries(
     moodMapping
   )) {
+    // Check if any word in the mood's word list is present in the prompt
     if (words.some((word) => lowercasedPrompt.includes(word.toLowerCase()))) {
       matched = true
       moodFound = mood
