@@ -113,7 +113,7 @@ const SignUpForm: React.FC = () => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="w-2/3 space-y-6 text-primary"
+        className="w-2/3 space-y-6 text-secondary"
       >
         <FormField
           control={form.control}
@@ -156,7 +156,7 @@ const SignUpForm: React.FC = () => {
         />
         <Button
           type="submit"
-          className="mt-6"
+          className="mt-6 bg-secondary text-primary hover:text-gray-500"
           variant="default"
           disabled={submitting}
         >

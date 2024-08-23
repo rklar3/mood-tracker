@@ -105,7 +105,7 @@ const SignInForm: React.FC = () => {
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="w-2/3 space-y-6 text-primary"
+        className="w-2/3 space-y-6 text-secondary"
       >
         <FormField
           control={form.control}
@@ -133,7 +133,11 @@ const SignInForm: React.FC = () => {
             </FormItem>
           )}
         />
-        <Button type="submit" className="mt-6" disabled={submitting}>
+        <Button
+          type="submit"
+          className="mt-6 bg-secondary text-primary hover:text-gray-500"
+          disabled={submitting}
+        >
           {submitting ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Please Wait
